@@ -53,6 +53,24 @@
 
 ---
 
+## 🏗️ Architecture
+
+UniVA consists of two main components:
+
+### Backend (Python)
+- **Plan Agent**: High-level planning and task decomposition
+- **Act Agent**: Execution of specific video generation tasks
+- **MCP Tools**: Modular tools for video processing, generation, and editing
+- **FastAPI Server**: RESTful API for client communication
+
+### Frontend (Next.js)
+- **Web Interface**: User-friendly chat interface
+- **Video Editor**: Timeline-based video editing capabilities
+- **Project Management**: Save and manage video projects
+- **Authentication**: User management and access control
+
+---
+
 ## 🚀 Installation
 
 ### Prerequisites
@@ -89,12 +107,8 @@ pip install -e .
 ```bash
 cp .env.example .env
 ```
-
-Select the  PROVIDER and add the corresponding API.
-
-#### 4. Configure the System
  
-Edit the configuration file to set your API keys and preferences:
+Edit the .env file to set your API keys and preferences:
 
 ```yaml
 # Model configuration for Plan Agent
@@ -113,8 +127,7 @@ auth_enabled = true
 admin_access_code = "your-admin-code"
 ```
 
-
-#### 5. Configure MCP Servers
+#### 4. Configure MCP Servers
 
 Edit `univa/config/mcp_configs.json` to configure your MCP (Model Context Protocol) servers:
 
@@ -130,7 +143,7 @@ Edit `univa/config/mcp_configs.json` to configure your MCP (Model Context Protoc
 }
 ```
 
-#### 6. Using UniVA
+#### 5. Using UniVA
 
 You have two options to use UniVA backend:
 
@@ -155,7 +168,7 @@ python univa_server.py
 
 The backend API will be available at `http://localhost:8000`.
 
-#### 7. Test the Backend
+#### 6. Test the Backend
 
 ```bash
 curl http://localhost:8000/health
@@ -197,24 +210,6 @@ bun run dev
 ```
 
 The frontend will be available at `http://localhost:3000`.
-
----
-
-## 🏗️ Architecture
-
-UniVA consists of two main components:
-
-### Backend (Python)
-- **Plan Agent**: High-level planning and task decomposition
-- **Act Agent**: Execution of specific video generation tasks
-- **MCP Tools**: Modular tools for video processing, generation, and editing
-- **FastAPI Server**: RESTful API for client communication
-
-### Frontend (Next.js)
-- **Web Interface**: User-friendly chat interface
-- **Video Editor**: Timeline-based video editing capabilities
-- **Project Management**: Save and manage video projects
-- **Authentication**: User management and access control
 
 ---
 
