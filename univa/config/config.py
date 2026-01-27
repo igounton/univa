@@ -2,6 +2,7 @@ import os
 import sys
 import toml
 import json
+import yaml
 
 def get_default_config():
     """Get default configuration"""
@@ -39,8 +40,52 @@ def get_default_config():
         
         # Other settings
         "proxy_host": "",
-        "proxy_port": ""
+        "proxy_port": "",
+        
+        # MCP Configuration (Merged from yaml and env)
+        "mcp_config": {}
     }
+
+def load_mcp_config(project_root, env_vars):
+    """
+    Load MCP tools configuration from YAML and override with environment variables.
+    """
+    config_path = os.path.join(project_root, "univa/config/mcp_tools_config/config.yaml")
+    
+    mcp_config = {}
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                mcp_config = yaml.safe_load(f) or {}
+        except Exception as e:
+            print(f"Warning: Failed to load MCP config from {config_path}: {e}")
+
+    # --- Override with Environment Variables ---
+    
+    # Helper to safely set nested dict values
+    def set_config(section, key, value):
+        if value:
+            if section not in mcp_config:
+                mcp_config[section] = {}
+            mcp_config[section][key] = value
+
+    # 1. API Keys
+    wavespeed_key = env_vars.get("WAVESPEED_API_KEY")
+    if wavespeed_key:
+        for section in ["image_gen", "video_editing", "video_gen", "audio_gen"]:
+            if section in mcp_config or section == "video_gen": # Ensure video_gen exists if key provided
+                set_config(section, "wavespeed_api", wavespeed_key)
+
+    set_config("llm", "openai_api_key", env_vars.get("LLM_OPENAI_API_KEY"))
+
+    # 2. Local Model Paths
+    set_config("video_editing", "model_path", env_vars.get("VIDEO_EDIT_MODEL_PATH"))
+    set_config("video_understanding", "model_path", env_vars.get("VIDEO_UNDERSTAND_MODEL_PATH"))
+    set_config("video_understanding", "retriever_model_path", env_vars.get("VIDEO_RETRIEVER_MODEL_PATH"))
+    set_config("video_tracking", "sa2va_model_path", env_vars.get("VIDEO_TRACK_SA2VA_PATH"))
+    set_config("video_tracking", "sam_model_path", env_vars.get("VIDEO_TRACK_SAM_PATH"))
+
+    return mcp_config
 
 def load_config():
     """Load configuration from TOML file or create with defaults if it doesn't exist"""
@@ -73,13 +118,6 @@ def load_config():
         config[file_key] = os.path.expanduser(config[file_key])
         os.makedirs(os.path.dirname(config[file_key]), exist_ok=True)
 
-    # Set up proxy settings if configured
-    PROXY_HOST = config.get("proxy_host")
-    PROXY_PORT = config.get("proxy_port")
-    if PROXY_HOST and PROXY_PORT:
-        os.environ["http_proxy"] = f"http://{PROXY_HOST}:{PROXY_PORT}"
-        os.environ["https_proxy"] = f"http://{PROXY_HOST}:{PROXY_PORT}"
-
     # Load model configuration from .env if present (project root .env)
     try:
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -89,8 +127,9 @@ def load_config():
             os.path.join(project_root, ".env"),
         ]
         env_path = next((p for p in env_candidates if os.path.exists(p)), None)
+        
+        env_vars = {}
         if env_path:
-            env_vars = {}
             with open(env_path, "r", encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
@@ -100,11 +139,43 @@ def load_config():
                         k, v = line.split("=", 1)
                         env_vars[k.strip()] = v.strip().strip('"').strip("'")
 
+            # --- Update Core Config from ENV ---
+            
+            # Auth & System
+            if "AUTH_ENABLED" in env_vars:
+                config["auth_enabled"] = env_vars["AUTH_ENABLED"].lower() == "true"
+            if "ADMIN_ACCESS_CODE" in env_vars:
+                config["admin_access_code"] = env_vars["ADMIN_ACCESS_CODE"]
+            if "SESSION_TIMEOUT_MINUTES" in env_vars:
+                config["session_timeout_minutes"] = int(env_vars["SESSION_TIMEOUT_MINUTES"])
+            if "MAX_SESSIONS_PER_USER" in env_vars:
+                config["max_sessions_per_user"] = int(env_vars["MAX_SESSIONS_PER_USER"])
+            
+            # Proxy
+            if "PROXY_HOST" in env_vars: config["proxy_host"] = env_vars["PROXY_HOST"]
+            if "PROXY_PORT" in env_vars: config["proxy_port"] = env_vars["PROXY_PORT"]
+
+            # Helper to get default base URL based on provider
+            def get_default_base_url(provider):
+                p = provider.lower()
+                if p == "openai":
+                    return "https://api.openai.com/v1"
+                if p == "deepseek":
+                    return "https://api.deepseek.com"
+                if p == "dashscope":
+                    return "https://dashscope.aliyuncs.com/compatible-mode/v1"
+                return ""
+
             # Plan model
             config["plan_model_provider"] = env_vars.get("PLAN_MODEL_PROVIDER", config.get("plan_model_provider"))
             config["plan_model_id"] = env_vars.get("PLAN_MODEL_ID", config.get("plan_model_id"))
             config["plan_model_api_key"] = env_vars.get("PLAN_MODEL_API_KEY", config.get("plan_model_api_key"))
-            config["plan_model_base_url"] = env_vars.get("PLAN_MODEL_BASE_URL", config.get("plan_model_base_url"))
+            
+            plan_base_url = env_vars.get("PLAN_MODEL_BASE_URL", "").strip()
+            if not plan_base_url:
+                plan_base_url = get_default_base_url(config["plan_model_provider"])
+            config["plan_model_base_url"] = plan_base_url
+            
             plan_extra = env_vars.get("PLAN_MODEL_EXTRA_PARAMS", config.get("plan_model_extra_params", ""))
             config["plan_model_extra_params"] = plan_extra
 
@@ -112,11 +183,28 @@ def load_config():
             config["act_model_provider"] = env_vars.get("ACT_MODEL_PROVIDER", config.get("act_model_provider"))
             config["act_model_id"] = env_vars.get("ACT_MODEL_ID", config.get("act_model_id"))
             config["act_model_api_key"] = env_vars.get("ACT_MODEL_API_KEY", config.get("act_model_api_key"))
-            config["act_model_base_url"] = env_vars.get("ACT_MODEL_BASE_URL", config.get("act_model_base_url"))
+            
+            act_base_url = env_vars.get("ACT_MODEL_BASE_URL", "").strip()
+            if not act_base_url:
+                act_base_url = get_default_base_url(config["act_model_provider"])
+            config["act_model_base_url"] = act_base_url
+            
             act_extra = env_vars.get("ACT_MODEL_EXTRA_PARAMS", config.get("act_model_extra_params", ""))
             config["act_model_extra_params"] = act_extra
-    except Exception:
+            
+        # --- Load and Merge MCP Config ---
+        config["mcp_config"] = load_mcp_config(project_root, env_vars)
+
+    except Exception as e:
+        print(f"Error loading configuration: {e}")
         pass
+
+    # Set up proxy settings if configured
+    PROXY_HOST = config.get("proxy_host")
+    PROXY_PORT = config.get("proxy_port")
+    if PROXY_HOST and PROXY_PORT:
+        os.environ["http_proxy"] = f"http://{PROXY_HOST}:{PROXY_PORT}"
+        os.environ["https_proxy"] = f"http://{PROXY_HOST}:{PROXY_PORT}"
 
     return CONFIG_FILE, config
 

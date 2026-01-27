@@ -103,29 +103,61 @@ And using the project configuration:
 pip install -e .
 ```
 
-#### 3. Configure LLM API
+#### 3. Configure Environment & Models
+
+Copy the example configuration file to create your local environment configuration:
+
 ```bash
 cp .env.example .env
 ```
  
-Edit the .env file to set your API keys and preferences:
+Edit the `.env` file to set your API keys, model preferences, and local paths. This file serves as the central configuration for UniVA.
 
-```yaml
-# Model configuration for Plan Agent
-plan_model_id = "gpt-4"
-plan_model_api_key = "your-openai-api-key"
+**A. Core Agent Models (Planning & Acting)**
+Configure the LLMs used by the main agents. You can use OpenAI, DeepSeek, Qwen, or local models.
 
-# Model configuration for Act Agent
-act_model_id = "gpt-4"
-act_model_api_key = "your-openai-api-key"
+```bash
+# Plan Agent (High-level reasoning)
+PLAN_MODEL_PROVIDER=openai
+PLAN_MODEL_ID=gpt-5
+PLAN_MODEL_API_KEY=your-api-key
 
-# MCP servers configuration path
-mcp_servers_config = "/path/to/your/univa/config/mcp_configs.json"
-
-# Authentication (optional)
-auth_enabled = true
-admin_access_code = "your-admin-code"
+# Act Agent (Execution & Tool use)
+ACT_MODEL_PROVIDER=openai
+ACT_MODEL_ID=gpt-5
+ACT_MODEL_API_KEY=your-api-key
 ```
+
+**B. MCP Tools Configuration**
+Set API keys for the tools used by UniVA (e.g., Image/Video generation).
+
+```bash
+# OpenAI API Key for tools using LLMs (e.g., query_llm)
+LLM_OPENAI_API_KEY=sk-...
+
+# Wavespeed API Key for generation tools (image, video, audio)
+WAVESPEED_API_KEY=your-wavespeed-key
+```
+
+**C. Local Model Paths (Optional)**
+If you are running local models for video editing or understanding, specify their absolute paths here. These will override the default settings without needing to modify code.
+
+```bash
+# Video Editing (e.g., Wan2.1)
+VIDEO_EDIT_MODEL_PATH=/abs/path/to/Wan2.1-VACE-1.3B
+
+# Video Understanding (e.g., Qwen2.5-VL)
+VIDEO_UNDERSTAND_MODEL_PATH=/abs/path/to/Qwen2.5-VL-32B-Instruct
+```
+
+**D. System Settings**
+```bash
+# Authentication & Admin (optional)
+AUTH_ENABLED=False
+ADMIN_ACCESS_CODE=your-secret-code
+```
+
+> **Note:** Variables defined in `.env` will override the defaults in `univa/config/config.py` and `univa/config/mcp_tools_config/config.yaml`.
 
 #### 4. Configure MCP Servers
 
