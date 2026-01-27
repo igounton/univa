@@ -85,7 +85,7 @@ And using the project configuration:
 pip install -e .
 ```
 
-### 3. Configure LLM API
+#### 3. Configure LLM API
 ```bash
 cp .env.example .env
 ```
