@@ -1,5 +1,5 @@
 # UniVA: Universal Video Agent
-## **Towards Open-Source Next-Generation Video Generalist**
+# **Towards Open-Source Next-Generation Video Generalist**
 
 <p align="center">
     <a href="https://univa.online" target="_blank">
