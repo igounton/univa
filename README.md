@@ -1,9 +1,5 @@
 # UniVA: Universal Video Agent
-**Towards Open-Source Next-Generation Video Generalist**
-
-<p align="center">
- <img src="univa_header.jpg" width="100%" alt="UniVA Header">
-</p>
+## **Towards Open-Source Next-Generation Video Generalist**
 
 <p align="center">
     <a href="https://univa.online" target="_blank">
@@ -24,6 +20,10 @@
     <a href="https://discord.gg/85GkGW897V" target="_blank">
         <img src="https://img.shields.io/badge/💬-Discussions-blueviolet.svg" alt="Discussions">
     </a>
+</p>
+
+<p align="center">
+ <img src="univa_header.jpg" width="100%" alt="UniVA Header">
 </p>
 
 
